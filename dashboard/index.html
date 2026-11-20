@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Token Radar — pre-token protocols ranked by implied value</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="radar-mark" aria-hidden="true"><span class="sweep"></span><span class="blip b1"></span><span class="blip b2"></span><span class="blip b3"></span></span>
+    <div>
+      <h1>TOKEN RADAR</h1>
+      <p class="tagline">Every protocol that records no token, ranked by what its token would be worth</p>
+    </div>
+  </div>
+  <div class="asof" id="asof"></div>
+</header>
+
+<section class="stats" id="stats" aria-label="Snapshot summary"></section>
+
+<nav class="tabs" role="tablist" aria-label="Views">
+  <button class="tab active" data-view="board" role="tab" aria-selected="true">Pre-token board</button>
+  <button class="tab" data-view="live" role="tab" aria-selected="false">Already trading</button>
+  <button class="tab" data-view="model" role="tab" aria-selected="false">The model</button>
+</nav>
+
+<main>
+  <section id="view-board" class="view">
+    <div class="toolbar">
+      <label class="search">Search
+        <input id="q" type="search" placeholder="Protocol, category or chain…" autocomplete="off">
+      </label>
+      <label>Category
+        <select id="cat"><option value="">All categories</option></select>
+      </label>
+      <label>Chain
+        <select id="chain"><option value="">All chains</option></select>
+      </label>
+      <label class="check"><input id="watchonly" type="checkbox"> Watchlist only</label>
+      <label>Sort by
+        <select id="sort">
+          <option value="value">Implied value</option>
+          <option value="tvl">TVL</option>
+          <option value="growth">7-day growth</option>
+          <option value="age">Age with no token</option>
+          <option value="name">Name A–Z</option>
+        </select>
+      </label>
+    </div>
+    <p class="count" id="count"></p>
+    <div class="tablewrap">
+      <table id="board">
+        <thead>
+          <tr>
+            <th data-sort="rank" class="num">#</th>
+            <th data-sort="name">Protocol</th>
+            <th data-sort="tvl" class="num">TVL</th>
+            <th data-sort="growth" class="num">7-day</th>
+            <th data-sort="age" class="num">Age</th>
+            <th data-sort="value" class="num">Implied value</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <p class="hint">Click a row for its farm plan and model breakdown. The board ranks pre-token protocols only; tokens that already trade live under “Already trading”.</p>
+  </section>
+
+  <section id="view-live" class="view" hidden>
+    <p class="lede">These protocols already have a token that trades, so the board shows the market's own value for them — never a model's guess — and never ranks them against the ones still to come.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Protocol</th><th class="num">TVL</th><th class="num">Market cap</th><th class="num">7-day</th></tr></thead>
+        <tbody id="live-rows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="view-model" class="view" hidden>
+    <div class="modelgrid">
+      <div class="card">
+        <h2>How the value is built</h2>
+        <p>Implied value follows only from the snapshot's own figures — TVL, seven-day growth, how long the protocol has run with no token, and how many chains it runs on. No protocol name is ever special-cased.</p>
+        <pre class="formula">implied = TVL × 0.30
+        × (1 + clamp(7d %, −50, 150) / 100 × 0.6)
+        × (0.7 + min(age, 1460) / 1460 × 0.3)
+        × (1 + 0.015 × min(chains − 1, 12))</pre>
+        <p class="fine">A protocol with no reported 7-day change reads as 0% growth; one with no listing date reads as 365 days old. “Records no token” is what the snapshot says — a protocol on the list may still have a token its DefiLlama record does not carry.</p>
+      </div>
+      <div class="card">
+        <h2>Try the model yourself</h2>
+        <p>Move a dial and the board re-ranks live, from the same snapshot figures. The submitted board always uses the constants above.</p>
+        <label class="slider">Base multiple — TVL × <output id="o-base">0.30</output>
+          <input id="s-base" type="range" min="0.1" max="0.5" step="0.01" value="0.30">
+        </label>
+        <label class="slider">Growth weight <output id="o-growth">0.60</output>
+          <input id="s-growth" type="range" min="0" max="1" step="0.05" value="0.6">
+        </label>
+        <label class="slider">Maturity range <output id="o-mat">0.30</output>
+          <input id="s-mat" type="range" min="0" max="0.5" step="0.05" value="0.3">
+        </label>
+        <p class="fine" id="sandbox-note">Sandbox is off — the board shows the submitted model.</p>
+        <button class="btn" id="sandbox-reset" type="button">Reset to the submitted model</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>What counts as pre-token here</h2>
+      <p>A protocol is ranked when its record carries no market cap, no CoinGecko id and no symbol, and it is not a wrapped, staked or bridged product of a token that already trades, not an exchange, and not a versioned pool of another protocol — the same exclusion rule the snapshot's watchlist was drawn with, applied to every protocol so the early finds below the $50M floor are held to the same standard. The watchlist is the floor, never the ceiling: this board carries all 40 of its protocols plus every other rankable pre-token protocol in the snapshot.</p>
+      <p class="fine" id="model-meta"></p>
+    </div>
+  </section>
+
+  <section id="detail" class="detail" hidden aria-live="polite"></section>
+</main>
+
+<footer>
+  <p>Token Radar · model <span id="model-version"></span> · snapshot <span id="foot-asof"></span> · Source: <span id="foot-source"></span></p>
+  <p class="fine">A token's implied value is this entry's own claim from the snapshot's figures, never a prediction that a token will be issued or when. Farm at your own risk, and claim only from links a protocol publishes itself.</p>
+</footer>
+
+<script src="../data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
